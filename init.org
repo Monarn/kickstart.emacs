@@ -32,9 +32,12 @@
   - [[#masonel][Mason.el]]
   - [[#sideline-flymake][Sideline-flymake]]
   - [[#yasnippet][Yasnippet]]
+  - [[#aas][AAS]]
   - [[#snippy][Snippy]]
   - [[#tree-sitter][Tree-Sitter]]
   - [[#language-modes][Language modes]]
+  - [[#org-mode][Org Mode]]
+  - [[#markdown-mode][Markdown mode]]
   - [[#terminal][Terminal]]
 - [[#multi-file-example][Multi File Example]]
   - [[#adding-the-lisp-directory-to-load-path][Adding the lisp directory to load-path]]
@@ -60,6 +63,7 @@
   - [[#which-key][Which-Key]]
   - [[#ws-butler][Ws-butler]]
   - [[#esup][Esup]]
+  - [[#dashboard][Dashboard]]
 
 * Introduction
 #+begin_src emacs-lisp :tangle no
@@ -363,18 +367,20 @@ Only works with package.el.
 #+begin_src emacs-lisp
     (use-package emacs
       :custom
+
       ;; Still needed for terminals
       (menu-bar-mode nil)         ; Disable the menu bar
       (scroll-bar-mode nil)       ; Disable the scroll bar
       (tool-bar-mode nil)         ; Disable the tool bar
+      (global-visual-line-mode t)
 
       ;;(inhibit-startup-screen t)  ; Disable welcome screen
 
       (delete-selection-mode t)   ; Select text and delete it by typing.
-      (electric-indent-mode nil)  ; Turn off the weird indenting that Emacs does by default.
+      ;; (electric-indent-mode t)  ; Turn off the weird indenting that Emacs does by default.
       (electric-pair-mode t)      ; Turns on automatic parens pairing
 
-      (blink-cursor-mode nil)     ; Don't blink cursor
+      (blink-cursor-mode t)     ; Don't blink cursor
       (global-auto-revert-mode t) ; Automatically reload file and show changes if the file has changed
       ;; (use-short-answers t)   ; Since Emacs 29, `yes-or-no-p' will use `y-or-n-p'
 
@@ -387,7 +393,7 @@ Only works with package.el.
 
       ;; (global-visual-line-mode t)           ; Enable line wrapping (NOTE: breaks vundo)
       (global-display-line-numbers-mode t)  ; Display line numbers
-      ;; (display-line-numbers-type 'relative) ; Relative line numbers
+      (display-line-numbers-type 'relative) ; Relative line numbers
       (global-hl-line-mode t)               ; Highlight current line
 
       (native-comp-async-report-warnings-errors 'silent) ; Don't show native comp errors
@@ -397,7 +403,7 @@ Only works with package.el.
       (scroll-conservatively 10) ; Smooth scrolling
       (scroll-margin 8)
 
-      ;; (pixel-scroll-precision-mode t) ; Precise pixel scrolling. i.e. smooth scrolling (GUI only)
+      (pixel-scroll-precision-mode t) ; Precise pixel scrolling. i.e. smooth scrolling (GUI only)
       ;; (pixel-scroll-precision-use-momentum nil)
 
       (indent-tabs-mode nil) ; Only use spaces for indentation
@@ -410,7 +416,7 @@ Only works with package.el.
       (whitespace-style '(face tabs tab-mark trailing))
 
       (make-backup-files nil) ; Stop creating ~ backup files
-      (auto-save-default nil) ; Stop creating # auto save files
+      (auto-save-default t) ; Stop creating # auto save files
       (delete-by-moving-to-trash t)
       :hook
       (prog-mode . hs-minor-mode) ; Enable folding hide/show globally
@@ -420,6 +426,7 @@ Only works with package.el.
       ;; Move customization variables to a separate file and load it, avoid filling up init.el with unnecessary variables
       (setq custom-file (locate-user-emacs-file "custom-vars.el"))
       (load custom-file 'noerror 'nomessage)
+      (add-to-list 'warning-suppress-types '(files lexical-binding))
       :bind (
              ([escape] . keyboard-escape-quit) ; Makes Escape quit prompts (Minibuffer Escape)
              ;; Zooming In/Out
@@ -427,7 +434,11 @@ Only works with package.el.
              ("C--" . text-scale-decrease)
              ("<C-wheel-up>" . text-scale-increase)
              ("<C-wheel-down>" . text-scale-decrease)))
+
 #+end_src
+
+#+RESULTS:
+: text-scale-decrease
 
 * Important to load first
 Packages that we want to load first so we have them as soon as possible if something breaks.
@@ -445,13 +456,14 @@ Notes:
 - You can toggle evil mode with C-z.
 
 *To use it, remove :tangle no from the beginning of the source code block.*
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
     (use-package evil
       :hook (after-init . evil-mode)
       :init
       (evil-mode)
       :config
       (evil-set-initial-state 'eat-mode 'insert) ; Set initial state in eat terminal to insert mode
+      (setq evil-auto-indent nil)
       ;; (global-set-key [C-backspace] 'evil-delete-backward-word) ; Make C-backspace less aggressive
       ;; Center cursor when jumping with C-d, C-u.
       ;; (advice-add 'evil-scroll-down :after (lambda (&rest _) (recenter nil)))
@@ -462,7 +474,7 @@ Notes:
       (evil-want-C-i-jump nil)      ; Disables C-i jump
       (evil-undo-system 'undo-redo) ; C-r to redo
       (evil-want-fine-undo t)
-      ;; (evil-respect-visual-line-mode t) ; Move in wrap lines
+      (evil-respect-visual-line-mode nil) ; Move in wrap lines
       ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
       :bind (:map evil-motion-state-map
                   ("SPC" . nil)
@@ -474,6 +486,11 @@ Notes:
       ;; Setting where to use evil-collection)
       (setq evil-collection-mode-list '(dired ibuffer magit corfu consult info (package-menu package) bookmark))
       (evil-collection-init))
+
+    (use-package evil-surround
+      :ensure t
+      :config
+      (global-evil-surround-mode 1))
 #+end_src
 
 ** General Keybindings
@@ -499,21 +516,21 @@ Note: The Leader key is what you will press when you want to access your keybind
       (load-file "~/.config/emacs/init.el"))
 
     (use-package general
-      ;; :after (evil) ; <- evil
+      :after (evil) ; <- evil
       :config
-      ;; (general-evil-setup) ; <- evil
+      (general-evil-setup) ; <- evil
       ;; Set up 'C-SPC' as the leader key
       (general-create-definer start/leader-keys
-        ;; :states '(normal insert visual motion emacs) ; <- evil
+        :states '(normal insert visual motion emacs) ; <- evil
         :keymaps 'override
-        :prefix "C-SPC"
+        :prefix "SPC"
         :global-prefix "C-SPC") ; Set global leader key so we can access our keybindings from any state
 
       (start/leader-keys
         "." '(find-file :wk "Find file")
         "," '(embark-act :wk "Embark act")
         "TAB" '(comment-line :wk "Comment lines")
-        "c" '(eat :wk "Eat terminal")
+        "c" '(ghostel :wk "Ghostel terminal")
         "g" '(magit-status :wk "Magit status")
         "q" '(flymake-show-buffer-diagnostics :wk "Flymake buffer diagnostic")
         ;; Projectile
@@ -760,7 +777,7 @@ If you want to use LSP mode check out their [[https://emacs-lsp.github.io/lsp-mo
     (use-package eglot
       :ensure nil ; Don't install eglot because it's now built-in
       :hook ((c-mode c++-mode ; Autostart lsp servers for a given mode
-                     lua-mode) ; Lua-mode needs to be installed
+                     lua-mode qml-mode haskell-mode) ; Lua-mode needs to be installed
              . eglot-ensure)
       :custom
       ;; Good default
@@ -768,7 +785,13 @@ If you want to use LSP mode check out their [[https://emacs-lsp.github.io/lsp-mo
       (eglot-autoshutdown t) ; Shutdown unused servers.
       (eglot-report-progress nil) ; Disable LSP server logs (Don't show lsp messages at the bottom, java)
       ;; Manual lsp servers
-      ;;:config
+      :config
+      (add-to-list 'eglot-server-programs
+                   '((qml-mode qml-ts-mode) . ("qmlls6"
+                                               "-I" "/usr/lib/qt6/qml"
+                                               "-I" "/usr/lib64/qt6/qml"
+                                               "-I" "/usr/lib/qt/qml")
+                     ))
       ;;(add-to-list 'eglot-server-programs
       ;;             `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ; Adds our lua lsp server to eglot's server list
       )
@@ -797,6 +820,12 @@ Show flymake errors with sideline.
 A template system for Emacs. And yasnippet-snippets is a snippet collection package.
 To use it write out the full keyword (or use autocompletion) and press Tab.
 #+begin_src emacs-lisp
+
+    (use-package yasnippet
+      :ensure t
+      :hook (prog-mode . yas-minor-mode)
+      (org-mode . yas-minor-mode))
+
     (use-package yasnippet-snippets
       ;; :custom
       ;; (yas-key-syntaxes '("w_" "w_." "^ ")) ; Fixes prefixes that have characters like: !,@ etc.
@@ -814,6 +843,27 @@ To use it write out the full keyword (or use autocompletion) and press Tab.
       :bind
       (:map yas-keymap
             ("TAB" . start/corfu-yas-tab-handler)))
+#+end_src
+
+** AAS
+
+Automatic snippet for notetaking
+
+#+begin_src emacs-lisp
+    (use-package aas
+      :hook (org-mode . aas-activate-for-major-mode))
+
+    (use-package laas
+      :hook (org-mode . laas-mode)
+      :config
+      (aas-set-snippets 'laas-mode
+                                            ; normal mode
+
+        "mk" '(yas "$$$1$$")
+        "ml" '(yas "\\[\n\t$1\n\\]")
+        :cond #'texmathp
+        ";:" "test"
+        ))
 #+end_src
 
 ** Snippy
@@ -852,7 +902,7 @@ You can also use treesit-auto, but it is updated quite slowly so we don't use it
 To explore the current buffer's syntax tree, use the treesit-explore-mode command.
 
 *To use it, remove :tangle no from the beginning of the source code block.*
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
     (setq treesit-language-source-alist
           '((bash "https://github.com/tree-sitter/tree-sitter-bash")
             (cmake "https://github.com/uyha/tree-sitter-cmake")
@@ -910,6 +960,9 @@ To explore the current buffer's syntax tree, use the treesit-explore-mode comman
     (use-package typescript-ts-mode :ensure nil :mode "\\.ts\\'")
     (use-package tsx-ts-mode :ensure nil :mode "\\.tsx\\'")
     (use-package yaml-ts-mode :ensure nil :mode ("\\.yaml\\'" "\\.yml\\'"))
+    (use-package qml-mode
+      :ensure t
+      :mode "\\.qml\\'")
 #+end_src
 
 *** Writing your own syntax highlight with treesitter
@@ -948,6 +1001,7 @@ You can easily write your own font locking with treesitter
                                                start/ts-font-lock-settings)))))
 #+end_src
 
+
 ** Language modes
 Emacs contains many “editing modes” that alter its basic behavior in
 useful ways. These are divided into “major modes” and “minor modes”.
@@ -964,7 +1018,14 @@ Use C-SPC tab to uncomment the lines.
 #       :mode "\\.lua\\'") ; Only start in a lua file
 # #+end_src
 
-*** Org Mode
+*** Haskell mode
+
+#+begin_src emacs-lisp
+    (use-package haskell-mode
+      :ensure t)
+#+end_src
+
+** Org Mode
 One of the things that Emacs is loved for.
 Once you've used it for a bit, you'll understand why people love it. Even reading about it can be inspiring!
 For example, this document is effectively the source code and descriptions bound into the one document,
@@ -985,25 +1046,94 @@ Much easier than org-tempo
     (use-package org
       :ensure nil
       :custom
-      (org-edit-src-content-indentation 4) ; Set src block automatic indent to 4 instead of 2.
+      (org-edit-src-content-indentation 0) ; Set src block automatic indent to 4 instead of 2.
       (org-return-follows-link t)   ; Sets RETURN key in org-mode to follow links
+      (org-format-latex-options '(:scale 0.37))
       :hook
       (org-mode . org-indent-mode)) ; Indent text
+
+    (use-package org-fragtog
+      :hook (org-mode . org-fragtog-mode))
+
+
 #+end_src
 
-**** Table of Contents
+*** Table of Contents
 #+begin_src emacs-lisp
     (use-package toc-org
       :commands toc-org-enable
       :hook (org-mode . toc-org-mode))
 #+end_src
 
-**** Org Superstar
+*** Org Superstar
 Prettify headings and plain lists in Org mode. Modern version of org-bullets.
 #+begin_src emacs-lisp
     (use-package org-superstar
       :after org
       :hook (org-mode . org-superstar-mode))
+#+end_src
+
+*** Org publish
+
+Publish projects
+
+#+begin_src emacs-lisp
+(setq org-publish-project-alist
+      '(
+       ("fac-org"
+        :base-directory "~/Documents/fac/"
+        :publishing-directory "~/Documents/fac/export/"
+        :base-extension "org"
+        :exclude "export"
+        :html-head "<link rel=\"stylesheet\" href=\"/css/style.css\"></style>"
+        :recursive t
+        :htmlized-source t
+        :publishing-function org-html-publish-to-html
+        )
+       ("fac-pdf"
+        :base-directory "~/Documents/fac/"
+        :publishing-directory "~/Documents/fac/export/"
+        :base-extension "pdf"
+        :exclude "export"
+        :publishing-function org-publish-attachment
+        :recursive t
+        )
+       ("fac" :components ("fac-pdf" "fac-org"))
+       ))
+
+#+end_src
+
+*** Org babel
+
+Execute code blocks in org.
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+  '((python . t)
+    (haskell . t)
+    (dot . t)
+    (gnuplot . t)
+    (makefile . t)
+    (C . t)
+    (emacs-lisp . t)
+    (shell . t)
+    ))
+  (setq org-babel-python-command "python3"
+        org-confirm-babel-evaluate nil)
+  )
+#+end_src
+
+** Markdown mode
+
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :ensure t
+  :mode ("README\\.md\\'" . gfm-mode)
+  :init (setq markdown-command "multimarkdown")
+  :bind (:map markdown-mode-map
+         ("C-c C-e" . markdown-do)))
 #+end_src
 
 ** Terminal
@@ -1014,10 +1144,21 @@ We setup eat with eshell, if you want to use bash, zsh etc., check out their git
 
 If you want a faster and more responsive terminal emulator try out vterm or ghostel.
 Ghostel is currently the fastest one I've found. It's nearly as fast as a native terminal.
+#+begin_src emacs-lisp :tangle no
+(use-package eat
+  :defer t
+  :hook ('eshell-load-hook #'eat-eshell-mode))
+
+
+#+end_src
+
 #+begin_src emacs-lisp
-    (use-package eat
-      :defer t
-      :hook ('eshell-load-hook #'eat-eshell-mode))
+    (use-package ghostel
+      :ensure t)
+
+    (use-package evil-ghostel
+      :after (ghostel evil)
+      :hook (ghostel-mode . evil-ghostel-mode))
 #+end_src
 
 *** Exec-path-from-shell
@@ -1224,6 +1365,17 @@ One alternative is ivy and counsel, check out the [[https://github.com/MiniApoll
       (nerd-icons-completion-mode)
       :hook
       (marginalia-mode . nerd-icons-completion-marginalia-setup))
+
+    ;; Configure directory extension.
+    (use-package vertico-directory
+      :after vertico
+      :ensure nil
+      ;; More convenient directory navigation commands
+      :bind (:map vertico-map
+                  ("RET" . vertico-directory-enter)
+                  ("DEL" . vertico-directory-delete-char)
+                  ("M-DEL" . vertico-directory-delete-word)))
+
 #+end_src
 
 ** Orderless
@@ -1421,4 +1573,40 @@ Benchmark Emacs Startup time: M-x esup
       :defer t
       :custom
       (esup-depth 0))
+#+end_src
+
+** Dashboard
+
+Dashboard greeting the user
+
+#+begin_src emacs-lisp
+
+(defun my/change-dashboard-title (title)
+  (setq dashboard-banner-logo-title title))
+
+(defun my/get-hour ()
+  (string-to-number (format-time-string "%H" (current-time) "Europe/Paris")))
+
+
+(defun my/change-dashboard-depends-time ()
+  (let ((time (my/get-hour)))
+    (cond ((and (< time 18) (>= time 6)) (my/change-dashboard-title "Bonjour Romann"))
+          ((and (>= time 18) (<= time 23)) (my/change-dashboard-title "Bonsoir Romann"))
+          (t (my/change-dashboard-title "Va dormir bâtard"))
+          )))
+
+(advice-add 'dashboard-open :before (lambda (&rest _) (my/change-dashboard-depends-time)))
+
+;; use-package with package.el:
+(use-package dashboard
+  :ensure t
+  :config
+  (dashboard-setup-startup-hook))
+
+(setq initial-buffer-choice 'dashboard-open)
+
+(setq dashboard-banner-logo-title "Bonjour Romann")
+(setq dashboard-startup-banner "/home/romann/.config/emacs/startup.jpg")
+(add-to-list 'dashboard-items '(agenda) t)
+(setq dashboard-week-agenda t)
 #+end_src
