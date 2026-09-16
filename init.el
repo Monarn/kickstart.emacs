@@ -191,6 +191,15 @@ Credit to Emacs From Scratch for this one!"
     "d v" '(dired :wk "Open dired"))
 
   (start/leader-keys
+    "w" '(:ignore t :wk "Windows operations")
+    "w r" '(evil-window-left :wk "Go to the window on the left")
+    "w t" '(evil-window-down :wk "Go to the lower window")
+    "w i" '(evil-window-up :wk "Go to the upper window")
+    "w u" '(evil-window-right :wk "Go to the window on the right")
+    "w v" '(split-window-vertically :wk "Split window vertically")
+    "w h" '(split-window-horizontally :wk "Split window horizontally"))
+
+  (start/leader-keys
     "e" '(:ignore t :wk "Languages")
     "e a" '(eglot-code-actions :wk "Eglot code actions")
     "e d" '(eldoc-doc-buffer :wk "Eldoc Buffer")
@@ -436,6 +445,12 @@ Credit to Emacs From Scratch for this one!"
   :mode "\\.qml\\'")
 
 (use-package haskell-mode
+  :ensure t)
+
+(add-to-list 'load-path "~/.emacs.d/lisp")
+(load-library "ampl-mode")
+
+(use-package graphviz-dot-mode
   :ensure t)
 
 (use-package org
@@ -791,6 +806,8 @@ Credit to Emacs From Scratch for this one!"
 (use-package ws-butler
   :hook (after-init . ws-butler-global-mode))
 
+(setq org-agenda-files '("~/org/todo.org"))
+
 (defun my/change-dashboard-title (title)
   (setq dashboard-banner-logo-title title))
 
@@ -816,6 +833,6 @@ Credit to Emacs From Scratch for this one!"
 (setq initial-buffer-choice 'dashboard-open)
 
 (setq dashboard-banner-logo-title "Bonjour Romann")
+(setq dashboard-navigation-cycle t)
 (setq dashboard-startup-banner "/home/romann/.config/emacs/startup.jpg")
-(add-to-list 'dashboard-items '(agenda) t)
 (setq dashboard-week-agenda t)
