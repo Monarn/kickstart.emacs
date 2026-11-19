@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (defvar ampl-tab-width 4 "Width of a tab in AMPL mode")
 
 (defvar ampl-mode-hook nil)

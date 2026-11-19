@@ -18,6 +18,8 @@
 
 ;; Increase the amount of data which Emacs reads from the process
 (setq read-process-output-max (* 1024 1024)) ; 1mb
+(setenv "LSP_USE_PLISTS" "true")
+(setq lsp-use-plists t)
 
 ;; Unset file-name-handler-alist
 ;; About 0.07 faster
@@ -26,6 +28,8 @@
 (add-hook 'after-init-hook
           (lambda ()
             (setq file-name-handler-alist last-file-name-handler-alist)))
+
+
 
 ;; Fix white flash on startup
 ;; Don't do it when using daemon or terminal, because it messes up the background color.

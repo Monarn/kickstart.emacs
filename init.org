@@ -18,16 +18,20 @@
   - [[#package-manager][Package manager]]
   - [[#good-defaults][Good Defaults]]
 - [[#important-to-load-first][Important to load first]]
+  - [[#surround][Surround]]
+  - [[#meow][Meow]]
   - [[#evil-mode][Evil Mode]]
   - [[#general-keybindings][General Keybindings]]
   - [[#undo][Undo]]
 - [[#appearance][Appearance]]
   - [[#set-theme][Set Theme]]
+  - [[#auto-dark-mode][Auto Dark mode]]
   - [[#transparency][Transparency]]
   - [[#doom-modeline][Doom Modeline]]
   - [[#nerd-icons][Nerd Icons]]
 - [[#development][Development]]
   - [[#projectile][Projectile]]
+  - [[#lsp-mode][Lsp Mode]]
   - [[#eglot][Eglot]]
   - [[#masonel][Mason.el]]
   - [[#sideline-flymake][Sideline-flymake]]
@@ -65,6 +69,9 @@
   - [[#esup][Esup]]
   - [[#agenda][Agenda]]
   - [[#dashboard][Dashboard]]
+- [[#capture][Capture]]
+- [[#org-publish][Org publish]]
+- [[#myfunctions][My/functions]]
 
 * Introduction
 #+begin_src emacs-lisp :tangle no
@@ -286,8 +293,8 @@ With Emacs 29 use-package is now built-in.
 This code eliminates the need to type :ensure t for each package download.
 Instead, you'll only need to use :ensure nil when you want to explicitly prevent a package from being downloaded.
 #+begin_src emacs-lisp
-    (require 'use-package-ensure) ; Load use-package-always-ensure
-    (setq use-package-always-ensure t) ; Always ensures that a package is installed
+(require 'use-package-ensure) ; Load use-package-always-ensure
+(setq use-package-always-ensure t) ; Always ensures that a package is installed
 #+end_src
 
 **** Most used parts of use-package
@@ -347,7 +354,7 @@ Avg:
 Package quickstart only works with package.el.
 If you plan to use a different package manager, remember to remove this section and the package-quickstart-refresh line in the Auto-tangle hook.
 #+begin_src emacs-lisp
-    (setq package-quickstart t) ; For blazingly fast startup times, this line makes startup miles faster
+(setq package-quickstart t) ; For blazingly fast startup times, this line makes startup miles faster
 #+end_src
 
 *** Package Async
@@ -366,75 +373,88 @@ Only works with package.el.
 
 ** Good Defaults
 #+begin_src emacs-lisp
-    (use-package emacs
-      :custom
+(use-package emacs
+  :custom
 
-      ;; Still needed for terminals
-      (menu-bar-mode nil)         ; Disable the menu bar
-      (scroll-bar-mode nil)       ; Disable the scroll bar
-      (tool-bar-mode nil)         ; Disable the tool bar
-      (global-visual-line-mode t)
+  ;; Still needed for terminals
+  (menu-bar-mode nil)         ; Disable the menu bar
+  (scroll-bar-mode nil)       ; Disable the scroll bar
+  (tab-bar-mode nil)
+  (tool-bar-mode nil)         ; Disable the tool bar
+  (global-visual-line-mode nil)
 
-      ;;(inhibit-startup-screen t)  ; Disable welcome screen
+  (add-to-list 'display-buffer-alist
+             '("\\*vterm\\*"
+               (display-buffer-in-side-window)
+               (side . bottom)
+               (window-height . 0.3)))
 
-      (delete-selection-mode t)   ; Select text and delete it by typing.
-      ;; (electric-indent-mode t)  ; Turn off the weird indenting that Emacs does by default.
-      (electric-pair-mode t)      ; Turns on automatic parens pairing
+(use-package vterm-toggle
+  :ensure t
+  :custom
+  (vterm-toggle-hide-method 'delete-window)
+  :config
+  (setq vterm-toggle-scope 'project))
+(add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
 
-      (blink-cursor-mode t)     ; Don't blink cursor
-      (global-auto-revert-mode t) ; Automatically reload file and show changes if the file has changed
-      ;; (use-short-answers t)   ; Since Emacs 29, `yes-or-no-p' will use `y-or-n-p'
+  ;;(inhibit-startup-screen t)  ; Disable welcome screen
 
-      ;; (dired-kill-when-opening-new-dired-buffer t) ; Dired doesn't create new buffer
-      ;; (dired-mouse-drag-files t) ; Enable Drag and Drop support in dired (Only works in X11)
+  (delete-selection-mode t)   ; Select text and delete it by typing.
+  ;; (electric-indent-mode t)  ; Turn off the weird indenting that Emacs does by default.
+  (electric-pair-mode t)      ; Turns on automatic parens pairing
 
-      ;; (recentf-mode t) ; Enable recent file mode
-      ;; (context-menu-mode t) ; Right-click menu
-      ;; (savehist-mode t) ; Enables save history mode
+  (blink-cursor-mode t)     ; Don't blink cursor
+  (global-auto-revert-mode t) ; Automatically reload file and show changes if the file has changed
+  (auto-window-vscroll t)
 
-      ;; (global-visual-line-mode t)           ; Enable line wrapping (NOTE: breaks vundo)
-      (global-display-line-numbers-mode t)  ; Display line numbers
-      (display-line-numbers-type 'relative) ; Relative line numbers
-      (global-hl-line-mode t)               ; Highlight current line
+  ;; (dired-kill-when-opening-new-dired-buffer t) ; Dired doesn't create new buffer
+  ;; (dired-mouse-drag-files t) ; Enable Drag and Drop support in dired (Only works in X11)
 
-      (native-comp-async-report-warnings-errors 'silent) ; Don't show native comp errors
-      (warning-minimum-level :error) ; Only show errors in warnings buffer
 
-      (mouse-wheel-progressive-speed nil) ; Disable progressive speed when scrolling
-      (scroll-conservatively 10) ; Smooth scrolling
-      (scroll-margin 8)
+  (global-visual-line-mode t)           ; Enable line wrapping (NOTE: breaks vundo)
+  (global-display-line-numbers-mode t)  ; Display line numbers
+  (display-line-numbers-type 'relative) ; Relative line numbers
+  (global-hl-line-mode t)               ; Highlight current line
+  (global-hi-lock-mode t)
 
-      (pixel-scroll-precision-mode t) ; Precise pixel scrolling. i.e. smooth scrolling (GUI only)
-      ;; (pixel-scroll-precision-use-momentum nil)
+  (native-comp-async-report-warnings-errors 'silent) ; Don't show native comp errors
+  (warning-minimum-level :error) ; Only show errors in warnings buffer
 
-      (indent-tabs-mode nil) ; Only use spaces for indentation
-      (tab-width 4)
-      (sgml-basic-offset 4) ; Set Html mode indentation to 4
-      (c-ts-mode-indent-offset 4) ; Fix weird indentation in c-ts (C, C++)
-      (go-ts-mode-indent-offset 4) ; Fix weird indentation in go-ts
+  (mouse-wheel-progressive-speed nil) ; Disable progressive speed when scrolling
+  (scroll-conservatively 10) ; Smooth scrolling
+  (scroll-margin 8)
 
-      ;; (display-fill-column-indicator-column 80) ; Set line length indicator to 80 characters
-      (whitespace-style '(face tabs tab-mark trailing))
+  (pixel-scroll-precision-mode t) ; Precise pixel scrolling. i.e. smooth scrolling (GUI only)
+  ;; (pixel-scroll-precision-use-momentum nil)
 
-      (make-backup-files nil) ; Stop creating ~ backup files
-      (auto-save-default t) ; Stop creating # auto save files
-      (delete-by-moving-to-trash t)
-      :hook
-      (prog-mode . hs-minor-mode) ; Enable folding hide/show globally
-      ;; (prog-mode . display-fill-column-indicator-mode) ; Display line length indicator
-      (prog-mode . whitespace-mode)
-      :config
-      ;; Move customization variables to a separate file and load it, avoid filling up init.el with unnecessary variables
-      (setq custom-file (locate-user-emacs-file "custom-vars.el"))
-      (load custom-file 'noerror 'nomessage)
-      (add-to-list 'warning-suppress-types '(files lexical-binding))
-      :bind (
-             ([escape] . keyboard-escape-quit) ; Makes Escape quit prompts (Minibuffer Escape)
-             ;; Zooming In/Out
-             ("C-+" . text-scale-increase)
-             ("C--" . text-scale-decrease)
-             ("<C-wheel-up>" . text-scale-increase)
-             ("<C-wheel-down>" . text-scale-decrease)))
+  (indent-tabs-mode nil) ; Only use spaces for indentation
+  (tab-width 4)
+  (sgml-basic-offset 4) ; Set Html mode indentation to 4
+  (c-ts-mode-indent-offset 4) ; Fix weird indentation in c-ts (C, C++)
+  (go-ts-mode-indent-offset 4) ; Fix weird indentation in go-ts
+
+  ;; (display-fill-column-indicator-column 80) ; Set line length indicator to 80 characters
+  (whitespace-style '(face tabs tab-mark trailing))
+
+  (make-backup-files nil) ; Stop creating ~ backup files
+  (auto-save-default nil) ; Stop creating # auto save files
+  (delete-by-moving-to-trash t)
+  :hook
+  (prog-mode . hs-minor-mode) ; Enable folding hide/show globally
+  ;; (prog-mode . display-fill-column-indicator-mode) ; Display line length indicator
+  (prog-mode . whitespace-mode)
+  :config
+  ;; Move customization variables to a separate file and load it, avoid filling up init.el with unnecessary variables
+  (setq custom-file (locate-user-emacs-file "custom-vars.el"))
+  (load custom-file 'noerror 'nomessage)
+  (add-to-list 'warning-suppress-types '(files lexical-binding))
+  :bind (
+         ([escape] . keyboard-escape-quit) ; Makes Escape quit prompts (Minibuffer Escape)
+         ;; Zooming In/Out
+         ("C-+" . text-scale-increase)
+         ("C--" . text-scale-decrease)
+         ("<C-wheel-up>" . text-scale-increase)
+         ("<C-wheel-down>" . text-scale-decrease)))
 
 #+end_src
 
@@ -443,6 +463,176 @@ Only works with package.el.
 
 * Important to load first
 Packages that we want to load first so we have them as soon as possible if something breaks.
+
+** Surround
+
+I like my vim surround :(
+
+#+begin_src emacs-lisp
+(use-package surround
+  :ensure t)
+#+end_src
+
+** Meow
+Oh Roman, Let's go bowling !
+
+#+begin_src emacs-lisp :tangle yes
+(defun my/compile-no-prompt ()
+  (interactive)
+  (compile "make -k -j8"))
+
+(defun my/exec-command ()
+  (interactive)
+  (let ((compile-command ""))
+    (call-interactively #'compile)))
+
+(defun my/kill-current-buffer ()
+  (interactive)
+  (kill-buffer nil))
+
+(defun meow-setup ()
+  ;; Remarque : vous pouvez garder qwerty pour le cheatsheet
+  ;; ou définir votre propre disposition pour l'aide visuelle.
+  (setq meow-cheatsheet-layout meow-cheatsheet-layout-qwerty)
+
+  ;; 1. Mode Motion (navigation rapide dans buffers spéciaux)
+  (meow-motion-overwrite-define-key
+   '("r" . meow-left)
+   '("t" . meow-next)
+   '("i" . meow-prev)
+   '("u" . meow-right)
+   '("<escape>" . ignore))
+
+  (meow-leader-define-key
+   '("." . find-file)
+   '("d s" . ace-select-window)
+   '("d h" . split-window-vertically)
+   '("d v" . split-window-horizontally)
+   '("d k" . delete-window)
+
+   '("e a" . eglot-code-actions)
+   '("e d" . eldoc-doc-buffer  )
+   '("e e" . eglot-reconnect  )
+   '("e f" . eglot-format  )
+   '("e i" . xref-find-definitions)
+   '("e l" . consult-flymake  )
+   '("e c" . my/exec-command)
+   '("e m" . my/compile-no-prompt)
+   '("e n" . flymake-goto-next-error  )
+   '("e p" . flymake-goto-prev-error  )
+   '("e R" . eglot-rename  )
+   '("e s" . xref-find-references  )
+   '("e v b" . eval-buffer  )
+   '("e v r" . eval-region  )
+   '("e r" . meow-query-replace)
+
+
+   '("t s" . magit-status)
+   '("t c" . magit-commit)
+   '("t b" . magit-checkout)
+   '("t t" . magit-tag)
+   '("t p" . magit-push)
+   '("t q" . magit-pull)
+   '("t r" . magit-blame)
+
+   '("s c" . start/open-init-file)
+   '("s f" . consult-fd)
+   '("s g" . consult-ripgrep)
+   '("s i" . consult-imenu)
+   '("s l" . consult-line)
+   '("s r" . consult-recent-file)
+   '("s r" . consult-recent-file)
+
+   ;; b prefix - buffer management
+   '("b s" . save-buffer)
+   '("b a" . (lambda () (interactive) (save-some-buffers t)))
+   '("," . consult-buffer)
+   '("b l" . ibuffer)
+   '("b k" . my/kill-current-buffer)
+   )
+
+  ;; 3. Mode Normal
+  (meow-normal-define-key
+   '("}" . forward-paragraph)
+   '("{" . backward-paragraph)
+
+   '("0" . meow-expand-0)
+   '("9" . meow-expand-9)
+   '("8" . meow-expand-8)
+   '("7" . meow-expand-7)
+   '("6" . meow-expand-6)
+   '("5" . meow-expand-5)
+   '("4" . meow-expand-4)
+   '("3" . meow-expand-3)
+   '("2" . meow-expand-2)
+   '("1" . meow-expand-1)
+   '("-" . negative-argument)
+   '(";" . meow-reverse)
+   '("," . meow-inner-of-thing)
+   '("." . meow-bounds-of-thing)
+   '("[" . meow-beginning-of-thing)
+   '("]" . meow-end-of-thing)
+
+   ;; Insertion & Édition
+   '("k" . meow-insert)
+   '("K" . meow-open-above)
+   '("a" . meow-append)
+   '("A" . meow-open-below)
+   '("c" . meow-change)
+   '("d" . meow-delete)
+
+   ;; Déplacements (R T I U)
+   '("r" . meow-left)
+   '("t" . meow-next)
+   '("i" . meow-prev)
+   '("u" . meow-right)
+
+   ;; Mots & Symboles
+   '("j" . meow-back-word)
+   '("v" . meow-back-symbol)
+   '("b" . meow-next-word)
+   '("e" . meow-next-symbol)
+
+   ;; Actions & Sélections
+   '("q u" . upcase-region)
+   '("q b" . downcase-region)
+   '("q c" . surround-change)
+   '("q n" . surround-insert)
+   '("q d" . surround-delete)
+
+   '("f f" . meow-find)
+   '("f t" . meow-till)
+   '("g" . meow-cancel)
+   '("G" . meow-grab)
+   '("m" . meow-join)
+   '("n" . meow-search)
+   '("o" . meow-block)
+   '("O" . meow-to-block)
+   '("p" . meow-yank)
+   '("Q" . meow-undo-in-selection)
+   '("h" . meow-replace)
+   '("H" . meow-swap-grab)
+   '("s" . meow-kill)
+   '("l" . meow-undo)
+   '("/" . meow-visit)
+   '("W" . meow-mark-word)
+   '("w" . meow-mark-symbol)
+   '("x" . meow-line)
+   '(":" . meow-goto-line)
+   '("y" . meow-save)
+   '("Y" . meow-sync-grab)
+   '("z" . meow-pop-selection)
+   '("'" . repeat)
+   '("<escape>" . ignore)))
+
+(use-package meow
+  :ensure t
+  :config
+  (meow-setup)
+  (meow-global-mode 1)
+  (setq meow-use-clipboard t))
+#+end_src
+
 ** Evil Mode
 An extensible vi/vim layer for Emacs.
 For users who find Emacs's native keybindings less intuitive.
@@ -457,41 +647,41 @@ Notes:
 - You can toggle evil mode with C-z.
 
 *To use it, remove :tangle no from the beginning of the source code block.*
-#+begin_src emacs-lisp
-    (use-package evil
-      :hook (after-init . evil-mode)
-      :init
-      (evil-mode)
-      :config
-      (evil-set-initial-state 'eat-mode 'insert) ; Set initial state in eat terminal to insert mode
-      (setq evil-auto-indent nil)
-      ;; (global-set-key [C-backspace] 'evil-delete-backward-word) ; Make C-backspace less aggressive
-      ;; Center cursor when jumping with C-d, C-u.
-      ;; (advice-add 'evil-scroll-down :after (lambda (&rest _) (recenter nil)))
-      ;; (advice-add 'evil-scroll-up :after (lambda (&rest _) (recenter nil)))
-      :custom
-      (evil-want-keybinding nil)    ; Disable evil bindings in other modes (It's not consistent and not good)
-      (evil-want-C-u-scroll t)      ; Set C-u to scroll up
-      (evil-want-C-i-jump nil)      ; Disables C-i jump
-      (evil-undo-system 'undo-redo) ; C-r to redo
-      (evil-want-fine-undo t)
-      (evil-respect-visual-line-mode nil) ; Move in wrap lines
-      ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
-      :bind (:map evil-motion-state-map
-                  ("SPC" . nil)
-                  ("RET" . nil)
-                  ("TAB" . nil)))
-    (use-package evil-collection
-      :after evil
-      :config
-      ;; Setting where to use evil-collection)
-      (setq evil-collection-mode-list '(dired ibuffer magit corfu consult info (package-menu package) bookmark))
-      (evil-collection-init))
+#+begin_src emacs-lisp :tangle no
+(use-package evil
+  :hook (after-init . evil-mode)
+  :init
+  (evil-mode)
+  :config
+  (evil-set-initial-state 'eat-mode 'insert) ; Set initial state in eat terminal to insert mode
+  (setq evil-auto-indent nil)
+  ;; (global-set-key [C-backspace] 'evil-delete-backward-word) ; Make C-backspace less aggressive
+  ;; Center cursor when jumping with C-d, C-u.
+  ;; (advice-add 'evil-scroll-down :after (lambda (&rest _) (recenter nil)))
+  ;; (advice-add 'evil-scroll-up :after (lambda (&rest _) (recenter nil)))
+  :custom
+  (evil-want-keybinding nil)    ; Disable evil bindings in other modes (It's not consistent and not good)
+  (evil-want-C-u-scroll t)      ; Set C-u to scroll up
+  (evil-want-C-i-jump nil)      ; Disables C-i jump
+  (evil-undo-system 'undo-redo) ; C-r to redo
+  (evil-want-fine-undo t)
+  (evil-respect-visual-line-mode nil) ; Move in wrap lines
+  ;; Unmap keys in 'evil-maps. If not done, org-return-follows-link will not work
+  :bind (:map evil-motion-state-map
+              ("SPC" . nil)
+              ("RET" . nil)
+              ("TAB" . nil)))
+(use-package evil-collection
+  :after evil
+  :config
+  ;; Setting where to use evil-collection)
+  (setq evil-collection-mode-list '(dired ibuffer magit corfu consult info (package-menu package) bookmark))
+  (evil-collection-init))
 
-    (use-package evil-surround
-      :ensure t
-      :config
-      (global-evil-surround-mode 1))
+(use-package evil-surround
+  :ensure t
+  :config
+  (global-evil-surround-mode 1))
 #+end_src
 
 ** General Keybindings
@@ -528,11 +718,21 @@ Note: The Leader key is what you will press when you want to access your keybind
     :global-prefix "C-SPC") ; Set global leader key so we can access our keybindings from any state
 
   (start/leader-keys
+    "g" '(:ignore t :wk "Git commands")
+    "g s" '(magit-status :wk "Git status")
+    "g c" '(magit-commit :wk "Git commit")
+    "g b" '(magit-checkout :wk "Git checkout")
+    "g t" '(magit-tag :wk "Git tag")
+    "g p" '(magit-push :wk "Git push")
+    "g q" '(magit-pull :wk "Git pull")
+    "g b" '(magit-blame :wk "Git blame")
+    )
+
+  (start/leader-keys
     "." '(find-file :wk "Find file")
     "," '(embark-act :wk "Embark act")
     "TAB" '(comment-line :wk "Comment lines")
     "c" '(ghostel :wk "Ghostel terminal")
-    "g" '(magit-status :wk "Magit status")
     "q" '(flymake-show-buffer-diagnostics :wk "Flymake buffer diagnostic")
     ;; Projectile
     "p" '(projectile-command-map :wk "Projectile")
@@ -540,6 +740,7 @@ Note: The Leader key is what you will press when you want to access your keybind
 
   (start/leader-keys
     "d" '(:ignore t :wk "Buffers & Dired")
+    "d d" '(dashboard-open :wk "Open the dashboard")
     "d i" '(ibuffer :wk "Ibuffer")
     "d j" '(dired-jump :wk "Dired jump to current")
     "d k" '(kill-current-buffer :wk "Kill current buffer")
@@ -567,6 +768,7 @@ Note: The Leader key is what you will press when you want to access your keybind
     "e f" '(eglot-format :wk "Eglot Format")
     "e i" '(xref-find-definitions :wk "Find definition")
     "e l" '(consult-flymake :wk "Consult Flymake")
+    "e m" '(evil-make :wk "Makefile execute")
 
     "e n" '(flymake-goto-next-error :wk "Flymake next error")
     "e p" '(flymake-goto-prev-error :wk "Flymake previous error")
@@ -619,6 +821,7 @@ Note: The Leader key is what you will press when you want to access your keybind
   (start/leader-keys
     "t" '(:ignore t :wk "Toggle")
     "t t" '(visual-line-mode :wk "Toggle truncated lines (wrap)")
+    "t r" '(consult-theme :wk "Change themes")
     "t l" '(display-line-numbers-mode :wk "Toggle line numbers")))
 
 ;; Fix general.el leader key not working instantly in messages buffer with evil mode
@@ -681,6 +884,8 @@ Evil users don't need to add keybindings for undo-fu just change evil-undo-syste
 
 * Appearance
 Set fonts in the early-init.el file
+
+
 ** Set Theme
 A megapack of themes for GNU Emacs.
 Use consult-theme to easily try out themes (*Epilepsy* Warning).
@@ -695,6 +900,17 @@ Use consult-theme to easily try out themes (*Epilepsy* Warning).
       ;; Corrects (and improves) org-mode's native fontification.
       (doom-themes-org-config))
 #+end_src
+
+** Auto Dark mode
+
+#+begin_src emacs-lisp
+(use-package auto-dark
+  :custom
+  (auto-dark-themes '((doom-laserwave) (doom-one-light)))
+  (setq custom-safe-themes t)
+  :init (auto-dark-mode))
+#+end_src
+
 
 ** Transparency
 With Emacs version 29, true transparency has been added.
@@ -713,10 +929,10 @@ With Emacs version 29, true transparency has been added.
 ** Doom Modeline
 A fancy, fast and customizable mode-line.
 #+begin_src emacs-lisp
-    (use-package doom-modeline
-      :custom
-      (doom-modeline-height 25) ; Set modeline height
-      :hook (after-init . doom-modeline-mode))
+(use-package doom-modeline
+  :custom
+  (doom-modeline-height 25) ; Set modeline height
+  :hook (after-init . doom-modeline-mode))
 #+end_src
 
 ** Nerd Icons
@@ -763,6 +979,14 @@ It's useful if you don't use standard project structures (or there is none).
       (projectile-project-search-path '("~/projects/" "~/work/" ("~/github" . 1)))) ; . 1 means only search the first subdirectory level for projects
 #+end_src
 
+** Lsp Mode
+
+Lsp mode :D
+
+#+begin_src emacs-lisp :tangle yes
+(use-package lsp-mode)
+#+end_src
+
 ** Eglot
 Built in Emacs client for the Language Server Protocol.
 We use Eglot because it is fast and minimal.
@@ -783,35 +1007,36 @@ But it's bigger, so it has more moving parts.
 
 We don't use it because Eglot is more than enough for most people.
 If you want to use LSP mode check out their [[https://emacs-lsp.github.io/lsp-mode/][documentation]] or the [[https://github.com/MiniApollo/kickstart.emacs/wiki][project wiki]] page for more information.
-#+begin_src emacs-lisp
-    (use-package eglot
-      :ensure nil ; Don't install eglot because it's now built-in
-      :hook ((c-mode c++-mode ; Autostart lsp servers for a given mode
-                     lua-mode qml-mode haskell-mode) ; Lua-mode needs to be installed
-             . eglot-ensure)
-      :custom
-      ;; Good default
-      (eglot-events-buffer-size 0) ; No event buffers (LSP server logs)
-      (eglot-autoshutdown t) ; Shutdown unused servers.
-      (eglot-report-progress nil) ; Disable LSP server logs (Don't show lsp messages at the bottom, java)
-      ;; Manual lsp servers
-      :config
-      (add-to-list 'eglot-server-programs
-                   '((qml-mode qml-ts-mode) . ("qmlls6"
-                                               "-I" "/usr/lib/qt6/qml"
-                                               "-I" "/usr/lib64/qt6/qml"
-                                               "-I" "/usr/lib/qt/qml")
-                     ))
-      ;;(add-to-list 'eglot-server-programs
-      ;;             `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ; Adds our lua lsp server to eglot's server list
-      )
+#+begin_src emacs-lisp :tangle no
+(use-package eglot
+  :ensure nil ; Don't install eglot because it's now built-in
+  :hook ((c-mode c++-mode ; Autostart lsp servers for a given mode
+                 lua-mode qml-mode haskell-mode) ; Lua-mode needs to be installed
+         . eglot-ensure)
+  :custom
+  ;; Good default
+  (eglot-events-buffer-size 0) ; No event buffers (LSP server logs)
+  (eglot-autoshutdown t) ; Shutdown unused servers.
+  (eglot-report-progress nil) ; Disable LSP server logs (Don't show lsp messages at the bottom, java)
+  ;; Manual lsp servers
+  ;; :config
+  ;; (add-to-list 'eglot-server-programs
+  ;;              '((qml-mode qml-ts-mode) . ("qmlls6"
+  ;;                                          "-I" "/usr/lib/qt6/qml"
+  ;;                                          "-I" "/usr/lib64/qt6/qml"
+  ;;                                          "-I" "/usr/lib/qt/qml")
+  ;;                ))
+  ;; ;;(add-to-list 'eglot-server-programs
+  ;;             `(lua-mode . ("PATH_TO_THE_LSP_FOLDER/bin/lua-language-server" "-lsp"))) ; Adds our lua lsp server to eglot's server list
+  )
 #+end_src
+
 
 ** Mason.el
 Package manager for LSP, DAP, linters, and more for the Emacs Operating System.
 I waited so long for a package like this.
 If you plan to use something like LSP-mode don't forget to remove this.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
     (use-package mason
       :hook (after-init . mason-ensure))
 #+end_src
@@ -825,6 +1050,7 @@ Show flymake errors with sideline.
       (sideline-flymake-display-mode 'line) ; Show errors on the current line
       (sideline-backends-right '(sideline-flymake)))
 #+end_src
+
 
 ** Yasnippet
 A template system for Emacs. And yasnippet-snippets is a snippet collection package.
@@ -869,8 +1095,8 @@ Automatic snippet for notetaking
       (aas-set-snippets 'laas-mode
                                             ; normal mode
 
-        "mk" '(yas "$$$1$$")
-        "ml" '(yas "\\[\n\t$1\n\\]")
+        "mk" '(yas "$$1$$0")
+        "mx" '(yas "\\[\n\t$1\n\\]$0")
         :cond #'texmathp
         ";:" "test"
         ))
@@ -1028,6 +1254,14 @@ Use C-SPC tab to uncomment the lines.
 #       :mode "\\.lua\\'") ; Only start in a lua file
 # #+end_src
 
+*** Zig ts mode
+
+#+begin_src emacs-lisp
+(use-package zig-ts-mode
+  :vc ( :url "https://codeberg.org/meow_king/zig-ts-mode"
+        :rev :newest))
+#+end_src
+
 *** Haskell mode
 
 #+begin_src emacs-lisp
@@ -1048,6 +1282,14 @@ Use C-SPC tab to uncomment the lines.
 #+begin_src emacs-lisp
 (use-package graphviz-dot-mode
   :ensure t)
+#+end_src
+
+*** Plantuml mode
+
+#+begin_src emacs-lisp
+(use-package plantuml-mode
+  :ensure t)
+
 #+end_src
 
 ** Org Mode
@@ -1098,35 +1340,6 @@ Prettify headings and plain lists in Org mode. Modern version of org-bullets.
       :hook (org-mode . org-superstar-mode))
 #+end_src
 
-*** Org publish
-
-Publish projects
-
-#+begin_src emacs-lisp
-(setq org-publish-project-alist
-      '(
-       ("fac-org"
-        :base-directory "~/Documents/fac/"
-        :publishing-directory "~/Documents/fac/export/"
-        :base-extension "org"
-        :exclude "export"
-        :html-head "<link rel=\"stylesheet\" href=\"/css/style.css\"></style>"
-        :recursive t
-        :htmlized-source t
-        :publishing-function org-html-publish-to-html
-        )
-       ("fac-pdf"
-        :base-directory "~/Documents/fac/"
-        :publishing-directory "~/Documents/fac/export/"
-        :base-extension "pdf"
-        :exclude "export"
-        :publishing-function org-publish-attachment
-        :recursive t
-        )
-       ("fac" :components ("fac-pdf" "fac-org"))
-       ))
-
-#+end_src
 
 *** Org babel
 
@@ -1134,20 +1347,22 @@ Execute code blocks in org.
 
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
+  (add-to-list 'org-src-lang-modes '("haskell" . haskell-ts))
   (org-babel-do-load-languages
    'org-babel-load-languages
   '((python . t)
     (haskell . t)
     (dot . t)
+    (plantuml . t)
     (gnuplot . t)
     (makefile . t)
     (C . t)
     (emacs-lisp . t)
-    (shell . t)
-    ))
+    (shell . t)))
+
   (setq org-babel-python-command "python3"
-        org-confirm-babel-evaluate nil)
-  )
+        org-confirm-babel-evaluate nil))
+
 #+end_src
 
 ** Markdown mode
@@ -1177,13 +1392,15 @@ Ghostel is currently the fastest one I've found. It's nearly as fast as a native
 
 #+end_src
 
-#+begin_src emacs-lisp
-    (use-package ghostel
-      :ensure t)
+#+begin_src emacs-lisp :tangle no
+(use-package vterm
+  :ensure t)
+#+end_src
 
-    (use-package evil-ghostel
-      :after (ghostel evil)
-      :hook (ghostel-mode . evil-ghostel-mode))
+#+begin_src emacs-lisp
+(use-package ghostel
+  :ensure t
+  :hook (after-init . ghostel-compile-global-mode))
 #+end_src
 
 *** Exec-path-from-shell
@@ -1221,25 +1438,25 @@ And now we can use everything from that file.
 ** Magit
 Complete text-based user interface to Git.
 #+begin_src emacs-lisp
-    (use-package transient
-      :defer t
-      :config
-      (define-key transient-map (kbd "<escape>") 'transient-quit-one)) ; Make escape quit magit prompts
+(use-package transient
+  :defer t
+  :config
+  (define-key transient-map (kbd "<escape>") 'transient-quit-one)) ; Make escape quit magit prompts
 
-    (use-package magit
-      :defer t
-      :custom (magit-diff-refine-hunk (quote all)) ; Shows inline diff
-      :config
-      (setopt magit-format-file-function #'magit-format-file-nerd-icons)) ; Magit nerd icons
+(use-package magit
+  :defer t
+  :custom (magit-diff-refine-hunk (quote all)) ; Shows inline diff
+  :config
+  (setopt magit-format-file-function #'magit-format-file-nerd-icons)) ; Magit nerd icons
 #+end_src
 
 ** Diff-hl
 Highlights uncommitted changes on the left side of the window (area also known as the "gutter"), allows you to jump between and revert them selectively.
 #+begin_src emacs-lisp
-    (use-package diff-hl
-      :hook ((dired-mode         . diff-hl-dired-mode-unless-remote)
-             (magit-post-refresh . diff-hl-magit-post-refresh)
-             (after-init . global-diff-hl-mode)))
+(use-package diff-hl
+  :hook ((dired-mode         . diff-hl-dired-mode-unless-remote)
+         (magit-post-refresh . diff-hl-magit-post-refresh)
+         (after-init . global-diff-hl-mode)))
 #+end_src
 
 * Completion
@@ -1250,42 +1467,44 @@ For more configuration options check out their [[https://github.com/minad/corfu]
 Notes:
 - To enter Orderless field separator, use M-SPC.
 #+begin_src emacs-lisp
-    (use-package corfu
-      ;; Optional customizations
-      :custom
-      (corfu-cycle t)                ; Enable cycling for `corfu-next/previous'
-      (corfu-auto t)                 ; Enable auto completion
-      (corfu-auto-prefix 2)          ; Minimum length of prefix for auto completion.
-      (corfu-popupinfo-mode t)       ; Enable popup information
-      (corfu-popupinfo-delay 0.5)    ; Lower popup info delay to 0.5 seconds from 2 seconds
+(use-package corfu
+  ;; Optional customizations
+  :custom
+  (corfu-cycle t)                ; Enable cycling for `corfu-next/previous'
+  (corfu-auto t)                 ; Enable auto completion
+  (corfu-auto-prefix 2)          ; Minimum length of prefix for auto completion.
+  (corfu-popupinfo-mode t)       ; Enable popup information
+  (corfu-popupinfo-delay 1)    ; Lower popup info delay to 0.5 seconds from 2 seconds
 
-      (corfu-separator ?\s)          ; Orderless field separator, Use M-SPC to enter separator
-      ;; (corfu-quit-at-boundary nil)   ; Never quit at completion boundary
-      ;; (corfu-quit-no-match nil)      ; Never quit, even if there is no match
-      ;; (corfu-preview-current nil)    ; Disable current candidate preview
-      ;; (corfu-preselect 'prompt)      ; Preselect the prompt
-      ;; (corfu-on-exact-match nil)     ; Configure handling of exact matches
-      ;; (corfu-scroll-margin 5)        ; Use scroll margin
+  (corfu-separator ?\s)          ; Orderless field separator, Use M-SPC to enter separator
+  ;; (corfu-quit-at-boundary nil)   ; Never quit at completion boundary
+  ;; (corfu-quit-no-match nil)      ; Never quit, even if there is no match
+  ;; (corfu-preview-current nil)    ; Disable current candidate preview
+  ;; (corfu-preselect 'prompt)      ; Preselect the prompt
+  ;; (corfu-on-exact-match nil)     ; Configure handling of exact matches
+  ;; (corfu-scroll-margin 5)        ; Use scroll margin
 
-      (completion-ignore-case t)
-      ;; Emacs 30 and newer: Disable Ispell completion function.
-      ;; Try `cape-dict' as an alternative.
-      (text-mode-ispell-word-completion nil)
+  (completion-ignore-case t)
+  ;; Emacs 30 and newer: Disable Ispell completion function.
+  ;; Try `cape-dict' as an alternative.
+  (text-mode-ispell-word-completion nil)
 
-      ;; Enable indentation+completion using the TAB key.
-      ;; `completion-at-point' is often bound to M-TAB.
-      (tab-always-indent 'complete)
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (tab-always-indent 'complete)
 
-      (corfu-preview-current nil) ; Don't insert completion without confirmation
-      ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
+  (corfu-preview-current nil) ; Don't insert completion without confirmation
+  ;; Recommended: Enable Corfu globally.  This is recommended since Dabbrev can
       ;; be used globally (M-/).  See also the customization variable
-      ;; `global-corfu-modes' to exclude certain modes.
-      :init
-      (global-corfu-mode))
+  ;; `global-corfu-modes' to exclude certain modes.
+  :init
+  (global-corfu-mode)
+  :bind (:map corfu-map
+              ("RET" . nil)))
 
-    (use-package nerd-icons-corfu
-      :after corfu
-      :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+(use-package nerd-icons-corfu
+  :after corfu
+  :init (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
 #+end_src
 
 ** Cape
@@ -1337,7 +1556,9 @@ Read the [[https://github.com/minad/cape#configuration][configuration section]] 
 
         ;; Add Eglot to the front of the list if it's active
         (when (bound-and-true-p eglot--managed-mode)
-          (setq merge-backends (append merge-backends (list #'eglot-completion-at-point))))
+          (setq merge-backends
+                (cons #'eglot-completion-at-point
+                      merge-backends)))
 
         ;; Create the super-capf and set it buffer-locally
         (setq-local completion-at-point-functions
@@ -1636,10 +1857,218 @@ Dashboard greeting the user
   :config
   (dashboard-setup-startup-hook))
 
-(setq initial-buffer-choice 'dashboard-open)
+(with-eval-after-load 'dashboard
+ (setq initial-buffer-choice (lambda () (dashboard-open))))
+
+
 
 (setq dashboard-banner-logo-title "Bonjour Romann")
 (setq dashboard-navigation-cycle t)
 (setq dashboard-startup-banner "/home/romann/.config/emacs/startup.jpg")
 (setq dashboard-week-agenda t)
 #+end_src
+
+* Capture
+
+#+begin_src emacs-lisp
+
+(require 'json)
+(require 'org-id)
+
+(defvar my/org-capture-title "")
+(defvar my/org-capture-deadline "")
+(defvar my/org-capture-tags "")
+(defvar my/org-capture-priority "")
+(defvar my/org-capture-id "")
+
+(setq org-todo-keywords
+      '((sequence "TODO"  "WAITING"  "BUG" "|" "DONE" "CANCELLED")))
+
+(defun my/org-priority ()
+  my/org-capture-priority)
+
+(defun my/org-title ()
+  my/org-capture-title)
+
+(defun my/org-id ()
+  my/org-capture-id)
+
+(defun my/org-capture-target ()
+  (org-id-goto my/org-capture-id))
+
+(defun my/org-deadline ()
+  (org-read-date nil nil my/org-capture-deadline))
+
+(setq org-capture-templates
+      '(("t" "Todo" entry
+         (file+headline "~/org/todo.org" "Todo")
+         "* TODO [#%(my/org-priority)] %(my/org-title) %(org-set-tags my/org-capture-tags)
+DEADLINE: <%(my/org-deadline)>
+:PROPERTIES:
+:ID: %(org-id-new)
+:END:
+CREATED: %U"
+         :immediate-finish t)
+        ("ts" "Todo" entry (file+headline "~/org/todo.org" "Todo")
+         "* TODO [#%(my/org-priority)] %(my/org-title) [/] %(org-set-tags my/org-capture-tags)
+:PROPERTIES:
+:ID: %(org-id-new)
+:END:
+CREATED: %U"
+         :immediate-finish t)
+    ("s" "Todo" entry (function my/org-capture-target)
+ "* TODO [#%(my/org-priority)] %(my/org-title) %(org-set-tags my/org-capture-tags)
+DEADLINE: <%(my/org-deadline)>
+:PROPERTIES:
+:ID: %(org-id-new)
+:END:
+CREATED: %U"
+ :immediate-finish t)
+        ))
+
+(defun my/org-capture-todo-step (title deadline prio tags id)
+  (let ((my/org-capture-title title)
+        (my/org-capture-deadline deadline)
+        (my/org-capture-tags tags)
+        (my/org-capture-id id)
+        (my/org-capture-priority prio))
+    (org-capture nil "s")))
+
+(defun my/org-get-parent-id ()
+  (save-excursion
+    (when (org-up-heading-safe)
+      (org-entry-get nil "ID"))))
+
+(defun my/org-capture-todo-steps (title prio tags)
+  (let ((my/org-capture-title title)
+        (my/org-capture-tags tags)
+        (my/org-capture-priority prio))
+    (org-capture nil "ts")))
+
+(defun my/org-capture-todo (title deadline prio tags)
+  (let ((my/org-capture-title title)
+        (my/org-capture-deadline deadline)
+        (my/org-capture-tags tags)
+        (my/org-capture-priority prio))
+    (org-capture nil "t")))
+
+(defun my/org-get-todo-list ()
+  (with-current-buffer (find-file-noselect "~/org/todo.org")
+    (org-map-entries
+     (lambda ()
+       (list
+        :name (org-get-heading t t t t)
+        :deadline (org-get-deadline-time nil)
+        :id (org-id-get)
+        :parent-id (my/org-get-parent-id)
+        :level (org-current-level)
+        :priority (org-get-priority (org-get-heading))
+        :tags (org-get-tags)
+        :state (org-get-todo-state)))
+     "LEVEL>=2"
+     'file)))
+
+(defun my/filter-todo-list-by-deadline (task-list)
+  (let ((today-day (org-today)))
+    (seq-filter
+     (lambda (task)
+       (let ((deadline (plist-get task :deadline)))
+         (or (null deadline)
+             (>= (time-to-days deadline) today-day))))
+     task-list)))
+
+(defun my/sort-todo-list-by-deadline (task-list)
+  (seq-sort-by
+   (lambda (task)
+     (or (plist-get task :deadline) most-positive-fixnum))
+   #'time-less-p
+   task-list))
+
+(defun my/get-filtered-list ()
+  (my/filter-todo-list-by-deadline (my/org-get-todo-list)))
+
+
+(defun my/task-plist-for-json (task)
+  (let ((deadline (plist-get task :deadline)))
+    (list :name (plist-get task :name)
+          :state (plist-get task :state)
+          :parent-id (plist-get task :parent-id)
+          :level (plist-get task :level)
+          :tags (plist-get task :tags)
+          :priority (plist-get task :priority)
+          :deadline (if deadline
+                        (format-time-string "%F" deadline)
+                      :null)
+          :id (plist-get task :id))))
+
+(defun my/get-todo-list ()
+  (json-encode
+   (apply #'vector (mapcar #'my/task-plist-for-json (my/get-filtered-list)))))
+
+(defun my/set-todo-done (id new_state)
+  (let ((res (org-id-find-id-in-file id "~/org/todo.org")))
+    (with-current-buffer (find-file-noselect "~/org/todo.org")
+      (when res
+    (goto-char (cdr res))
+    (org-todo new_state)
+    (save-buffer)))))
+
+(defun org-summary-todo (n-done n-not-done)
+  "Switch entry to DONE when all subentries are done, to TODO otherwise."
+  (let (org-log-done org-todo-log-states)   ; turn off logging
+    (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+
+(add-hook 'org-after-todo-statistics-hook #'org-summary-todo)
+
+#+end_src
+
+
+* Org publish
+
+Publish projects
+
+#+begin_src emacs-lisp
+(use-package htmlize
+  :ensure t
+  :config
+  (require 'org)
+  (setq org-src-fontify-natively t
+        org-html-htmlize-output-type 'css))
+
+(require 'htmlize)
+
+(setq org-plantuml-jar-path "~/.emacs.d/bin/"
+      org-src-fontify-natively t
+      org-html-htmlize-output-type 'css)
+
+(setq org-publish-project-alist
+      '(("fac-org"
+        :base-directory "~/Documents/fac/"
+        :publishing-directory "~/Documents/fac/export/"
+        :base-extension "org"
+        :exclude "export"
+        :html-head "<link rel=\"stylesheet\" href=\"/css/style.css\" />"
+        :recursive t
+        :publishing-function org-html-publish-to-html)
+       ("fac-pdf"
+        :base-directory "~/Documents/fac/"
+        :publishing-directory "~/Documents/fac/export/"
+        :base-extension "pdf"
+        :exclude "export"
+        :publishing-function org-publish-attachment
+        :recursive t
+        )
+       ("fac" :components ("fac-pdf" "fac-org"))))
+#+end_src
+
+* My/functions
+
+#+begin_src emacs-lisp
+(defun my/org-get-param (name)
+  "Gets the value of NAME keyword in the current org file.
+Example: #+KEYWORD: value -> (my/org-get-param \"KEYWORD\")"
+  (car (cdr (car (org-collect-keywords (list name))))))
+#+end_src
+
+
+test
